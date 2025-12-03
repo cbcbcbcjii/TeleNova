@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Управление тарифами - TeleNova</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Тарифы</span></h2>
+      <div class="navbar-actions">
+        <a href="dashboard.html" class="btn-secondary">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>Добавить новый тариф</h2>
+      <div class="form-group" style="grid-template-columns: repeat(2, 1fr);">
+        <input type="text" id="name" placeholder="Название" class="input">
+        <input type="number" id="minutes" placeholder="Минуты" class="input" value="100">
+        <input type="number" id="data_gb" placeholder="ГБ" class="input" value="5">
+        <input type="number" id="sms" placeholder="SMS" class="input" value="50">
+        <input type="number" id="price" placeholder="Цена" class="input" value="299">
+        <button onclick="addTariff()" class="btn-primary" style="grid-column: 1 / -1;">Добавить тариф</button>
+      </div>
+      <div id="error-message" class="error-message"></div>
+    </div>
+
+    <div class="card">
+      <h2>Все тарифы</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Минуты</th>
+            <th>ГБ</th>
+            <th>SMS</th>
+            <th>Цена</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="tariffs-list">
+          <tr><td colspan="6" style="text-align: center; color: #999;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const sessionId = localStorage.getItem('sessionId');
+
+    if (!sessionId) window.location.href = 'login_operator.html';
+
+    async function loadTariffs() {
+      try {
+        const res = await fetch(`${API_URL}/tariffs`);
+        const tariffs = await res.json();
+        document.getElementById('tariffs-list').innerHTML = tariffs.map(t => `
+          <tr>
+            <td>${t.name}</td>
+            <td>${t.minutes}</td>
+            <td>${t.data_gb}</td>
+            <td>${t.sms}</td>
+            <td>${t.price}₽</td>
+            <td>
+              <button onclick="deleteTariff(${t.id})" class="btn-table-delete">Удалить</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function addTariff() {
+      const name = document.getElementById('name').value;
+      const minutes = parseInt(document.getElementById('minutes').value);
+      const data_gb = parseInt(document.getElementById('data_gb').value);
+      const sms = parseInt(document.getElementById('sms').value);
+      const price = parseInt(document.getElementById('price').value);
+
+      if (!name || !minutes || !data_gb || !sms || !price) {
+        showError('Заполните все поля');
+        return;
+      }
+
+      try {
+        await fetch(`${API_URL}/tariffs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, minutes, data_gb, sms, price })
+        });
+
+        document.getElementById('name').value = '';
+        loadTariffs();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    async function deleteTariff(id) {
+      if (!confirm('Удалить тариф?')) return;
+      try {
+        await fetch(`${API_URL}/tariffs/${id}`, {
+          method: 'DELETE'
+        });
+        loadTariffs();
+      } catch (e) {
+        alert('Ошибка удаления');
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      document.getElementById('error-message').classList.add('show');
+      setTimeout(() => document.getElementById('error-message').classList.remove('show'), 3000);
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadTariffs();
+  </script>
+</body>
+</html>

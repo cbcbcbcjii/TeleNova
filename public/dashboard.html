@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Панель оператора</span></h2>
+      <div class="navbar-actions">
+        <span id="operator-name" style="margin-right: 20px; color: #666;"></span>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="admin-grid">
+      <div class="card">
+        <h2>📊 Быстрые действия</h2>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <a href="subscribers.html" class="btn-primary" style="text-decoration: none; text-align: center; padding: 12px;">Список абонентов</a>
+          <a href="admin.html" class="btn-primary" style="text-decoration: none; text-align: center; padding: 12px;">Управление тарифами</a>
+          <a href="traffic_list.html" class="btn-primary" style="text-decoration: none; text-align: center; padding: 12px;">История трафика</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📈 Статистика</h2>
+        <div id="stats" style="display: grid; gap: 15px;">
+          <div class="stat-item">
+            <span class="stat-label">Всего абонентов</span>
+            <span class="stat-value" id="total-subs">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Активных тарифов</span>
+            <span class="stat-value" id="total-tariffs">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const operator = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!operator.id) window.location.href = 'login_operator.html';
+
+    document.getElementById('operator-name').textContent = `👤 ${operator.login}`;
+
+    async function loadStats() {
+      try {
+        const subsRes = await fetch(`${API_URL}/subscribers`);
+        const subs = await subsRes.json();
+        const tariffsRes = await fetch(`${API_URL}/tariffs`);
+        const tariffs = await tariffsRes.json();
+        
+        document.getElementById('total-subs').textContent = subs.length;
+        document.getElementById('total-tariffs').textContent = tariffs.length;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      window.location.href = 'index.html';
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>

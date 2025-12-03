@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Карточка абонента - TeleNova</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Карточка абонента</span></h2>
+      <div class="navbar-actions">
+        <a href="subscribers.html" class="btn-secondary" style="text-decoration: none;">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>Информация об абоненте</h2>
+      <div id="subscriber-info" class="profile-info"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 История трафика (последние 30 дней)</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Тип</th>
+            <th>Минуты</th>
+            <th>Трафик (MB)</th>
+            <th>SMS</th>
+          </tr>
+        </thead>
+        <tbody id="traffic-list">
+          <tr><td colspan="5" style="text-align: center; color: #999;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const params = new URLSearchParams(window.location.search);
+    const subscriberId = params.get('id');
+
+    if (!JSON.parse(localStorage.getItem('user') || '{}').id) window.location.href = 'login_operator.html';
+    if (!subscriberId) window.location.href = 'subscribers.html';
+
+    async function loadSubscriber() {
+      try {
+        const res = await fetch(`${API_URL}/subscribers/${subscriberId}`);
+        const sub = await res.json();
+
+        document.getElementById('subscriber-info').innerHTML = `
+          <div class="profile-item">
+            <label>ФИО</label>
+            <span>${sub.full_name || 'Неизвестно'}</span>
+          </div>
+          <div class="profile-item">
+            <label>Телефон</label>
+            <span>${sub.phone}</span>
+          </div>
+          <div class="profile-item">
+            <label>Тариф</label>
+            <span>${sub.name || '-'}</span>
+          </div>
+          <div class="profile-item">
+            <label>Минуты/месяц</label>
+            <span>${sub.minutes || '-'}</span>
+          </div>
+          <div class="profile-item">
+            <label>ГБ/месяц</label>
+            <span>${sub.data_gb || '-'}</span>
+          </div>
+          <div class="profile-item">
+            <label>SMS/месяц</label>
+            <span>${sub.sms || '-'}</span>
+          </div>
+          <div class="profile-item">
+            <label>Цена/месяц</label>
+            <span>${sub.price || '-'}₽</span>
+          </div>
+          <div class="profile-item">
+            <label>Дата регистрации</label>
+            <span>${sub.reg_date}</span>
+          </div>
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadTraffic() {
+      try {
+        const res = await fetch(`${API_URL}/traffic/${subscriberId}`);
+        const traffic = await res.json();
+
+        document.getElementById('traffic-list').innerHTML = traffic.map(t => `
+          <tr>
+            <td>${t.date || '-'}</td>
+            <td>${t.traffic_type === 'day' ? '🌞 День' : '🌙 Ночь'}</td>
+            <td>${t.minutes_used || 0}</td>
+            <td>${(t.data_used || 0).toFixed(1)}</td>
+            <td>${t.sms_used || 0}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" style="text-align: center; color: #999;">Нет данных</td></tr>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadSubscriber();
+    loadTraffic();
+  </script>
+</body>
+</html>

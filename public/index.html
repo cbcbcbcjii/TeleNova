@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeleNova - Оператор связи</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div class="landing-page">
+    <nav class="navbar-landing">
+      <div class="navbar-content">
+        <h1 class="logo">📱 TeleNova</h1>
+        <div class="nav-links">
+          <a href="login_subscriber.html" class="btn-secondary">Вход абонента</a>
+          <a href="login_operator.html" class="btn-primary">Вход оператора</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="hero-section">
+      <h2>Индивидуальные тарифы под каждого абонента</h2>
+      <p>Анализируем ваш трафик и подбираем оптимальный тариф</p>
+      <div class="hero-buttons">
+        <a href="login_subscriber.html" class="btn-large">Я абонент</a>
+        <a href="login_operator.html" class="btn-large secondary">Я оператор</a>
+      </div>
+    </div>
+
+    <div class="features-section">
+      <h3>Наши услуги</h3>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h4>📊 Анализ трафика</h4>
+          <p>Система анализирует ваше потребление и подбирает лучший тариф</p>
+        </div>
+        <div class="feature-card">
+          <h4>💰 Выгодные тарифы</h4>
+          <p>От 299 до 1999 рублей в месяц. Выбирайте оптимальный вариант</p>
+        </div>
+        <div class="feature-card">
+          <h4>🔒 Безопасность</h4>
+          <p>Ваши данные защищены. Полная конфиденциальность</p>
+        </div>
+        <div class="feature-card">
+          <h4>⚡ Быстрая сеть</h4>
+          <p>Высокая скорость интернета до 500 ГБ в месяц</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .landing-page { background: white; }
+    .navbar-landing { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 15px 0; }
+    .navbar-landing .navbar-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    .logo { color: #667eea; font-size: 28px; }
+    .nav-links { display: flex; gap: 15px; }
+    .hero-section { padding: 100px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .hero-section h2 { font-size: 48px; margin-bottom: 15px; }
+    .hero-section p { font-size: 18px; opacity: 0.9; margin-bottom: 30px; }
+    .hero-buttons { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+    .btn-large { padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; text-decoration: none; background: white; color: #667eea; cursor: pointer; border: none; transition: all 0.3s; }
+    .btn-large:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+    .btn-large.secondary { background: rgba(255,255,255,0.2); color: white; border: 2px solid white; }
+    .features-section { padding: 80px 20px; max-width: 1200px; margin: 0 auto; }
+    .features-section h3 { text-align: center; font-size: 32px; margin-bottom: 50px; color: #333; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
+    .feature-card { padding: 30px; border-radius: 12px; background: #f8f9fa; text-align: center; transition: all 0.3s; }
+    .feature-card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(102,126,234,0.2); }
+    .feature-card h4 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
+    .feature-card p { color: #666; line-height: 1.6; }
+  </style>
+</body>
+</html>

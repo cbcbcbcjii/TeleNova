@@ -1,0 +1,66 @@
+@import url('./variables.css');
+
+.navbar {
+  background: var(--bg-white);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navbar);
+}
+
+.navbar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar h2 {
+  color: var(--primary);
+  font-size: var(--font-size-3xl);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-logout {
+  padding: 8px 20px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  transition: all var(--transition-normal);
+}
+
+.btn-logout:hover {
+  background: var(--danger-dark);
+  transform: translateY(-2px);
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.subscriber-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  max-width: 900px;
+}

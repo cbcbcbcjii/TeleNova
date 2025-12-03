@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой трафик - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- История трафика</span></h2>
+      <div class="navbar-actions">
+        <a href="lk_profile.html" class="btn-secondary" style="text-decoration: none;">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>📈 Сводка за последние 30 дней</h2>
+      <div id="summary" class="stats-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Детальная история трафика</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>🌞 Днём (MB)</th>
+            <th>🌙 Ночью (MB)</th>
+            <th>📊 Всего (MB)</th>
+            <th>☎️ Минуты</th>
+            <th>💬 SMS</th>
+          </tr>
+        </thead>
+        <tbody id="traffic-list">
+          <tr><td colspan="6" style="text-align: center; color: #999;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!user.id || user.type !== 'subscriber') window.location.href = 'login_subscriber.html';
+
+    async function loadTraffic() {
+      try {
+        const res = await fetch(`${API_URL}/traffic/${user.id}`);
+        const traffic = await res.json();
+        
+        const byDate = {};
+        let totalDay = 0, totalNight = 0, totalMin = 0, totalSms = 0;
+        
+        traffic.forEach(t => {
+          if (!byDate[t.date]) {
+            byDate[t.date] = { day: 0, night: 0, minutes: 0, sms: 0 };
+          }
+          if (t.traffic_type === 'day') {
+            byDate[t.date].day += t.data_used || 0;
+            totalDay += t.data_used || 0;
+          } else {
+            byDate[t.date].night += t.data_used || 0;
+            totalNight += t.data_used || 0;
+          }
+          byDate[t.date].minutes = (byDate[t.date].minutes || 0) + (t.minutes_used || 0);
+          byDate[t.date].sms = (byDate[t.date].sms || 0) + (t.sms_used || 0);
+          totalMin += t.minutes_used || 0;
+          totalSms += t.sms_used || 0;
+        });
+
+        const totalGb = (totalDay + totalNight) / 1024;
+        document.getElementById('summary').innerHTML = `
+          <div class="stat-item">
+            <span class="stat-label">📊 Всего трафика (ГБ)</span>
+            <span class="stat-value">${totalGb.toFixed(1)}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">🌞 Днём (ГБ)</span>
+            <span class="stat-value">${(totalDay / 1024).toFixed(1)}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">🌙 Ночью (ГБ)</span>
+            <span class="stat-value">${(totalNight / 1024).toFixed(1)}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">☎️ Минуты</span>
+            <span class="stat-value">${totalMin}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">💬 SMS</span>
+            <span class="stat-value">${totalSms}</span>
+          </div>
+        `;
+
+        let tableHtml = '';
+        for (const date in byDate) {
+          const data = byDate[date];
+          tableHtml += `
+            <tr>
+              <td>${date}</td>
+              <td>${(data.day || 0).toFixed(1)}</td>
+              <td>${(data.night || 0).toFixed(1)}</td>
+              <td>${((data.day || 0) + (data.night || 0)).toFixed(1)}</td>
+              <td>${data.minutes || 0}</td>
+              <td>${data.sms || 0}</td>
+            </tr>
+          `;
+        }
+        
+        if (tableHtml === '') {
+          tableHtml = '<tr><td colspan="6" style="text-align: center; color: #999;">Нет данных</td></tr>';
+        }
+        
+        document.getElementById('traffic-list').innerHTML = tableHtml;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadTraffic();
+  </script>
+</body>
+</html>

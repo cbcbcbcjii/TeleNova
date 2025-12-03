@@ -1,0 +1,22 @@
+{
+  "name": "telecom-operator",
+  "version": "1.0.0",
+  "description": "TeleNova - система управления абонентами оператора связи",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["telecom", "operator", "subscribers"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "4.18.2",
+    "cors": "2.8.5",
+    "body-parser": "1.20.2",
+    "sqlite3": "5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "3.0.1"
+  }
+}

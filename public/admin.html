@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Админ панель</span></h2>
+      <div class="navbar-actions">
+        <span id="admin-name" style="margin-right: 20px; color: #666;"></span>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>💳 Управление тарифами</h2>
+      
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+        <h3 style="margin-bottom: 15px; color: #333;">➕ Добавить новый тариф</h3>
+        <div class="form-group" style="grid-template-columns: repeat(2, 1fr);">
+          <input type="text" id="tariff-name" placeholder="Название" class="input">
+          <input type="number" id="tariff-minutes" placeholder="Минуты" class="input" value="100">
+          <input type="number" id="tariff-sms" placeholder="SMS" class="input" value="50">
+          <input type="number" id="tariff-data" placeholder="ГБ" class="input" value="10">
+          <input type="number" id="tariff-price" placeholder="Цена (₽)" class="input" value="299">
+          <button onclick="addTariff()" class="btn-primary" style="grid-column: 1 / -1;">Добавить тариф</button>
+        </div>
+        <div id="add-error" style="color: #e74c3c; margin-top: 10px; display: none;"></div>
+      </div>
+
+      <h3 style="margin-bottom: 15px; color: #333;">📊 Все тарифы</h3>
+      <div id="tariffs-list" class="tariff-management"></div>
+    </div>
+  </div>
+
+  <div id="tariff-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Редактировать тариф</h3>
+        <button onclick="closeTariffModal()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-tariff-id">
+        <div class="form-group" style="grid-template-columns: 1fr;">
+          <input type="text" id="modal-name" placeholder="Название" class="input">
+          <input type="number" id="modal-minutes" placeholder="Минуты" class="input">
+          <input type="number" id="modal-sms" placeholder="SMS" class="input">
+          <input type="number" id="modal-data" placeholder="ГБ" class="input">
+          <input type="number" id="modal-price" placeholder="Цена" class="input">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeTariffModal()" class="btn-secondary" style="width: auto;">Отмена</button>
+        <button onclick="updateTariff()" class="btn-primary" style="width: auto;">Сохранить</button>
+        <button onclick="deleteTariff()" class="btn-table-delete" style="width: auto;">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

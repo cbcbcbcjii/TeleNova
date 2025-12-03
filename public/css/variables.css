@@ -1,0 +1,49 @@
+:root {
+  /* Цвета */
+  --primary: #667eea;
+  --primary-dark: #764ba2;
+  --secondary: #95a5a6;
+  --danger: #e74c3c;
+  --danger-dark: #c0392b;
+  --info: #3498db;
+  --info-dark: #2980b9;
+  --success: #27ae60;
+  --warning: #f39c12;
+  
+  /* Нейтральные */
+  --text-dark: #333;
+  --text-light: #999;
+  --bg-light: #f8f9fa;
+  --bg-white: #ffffff;
+  --border-light: #eee;
+  
+  /* Размеры */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 15px;
+  
+  /* Тени */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 5px 20px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+  
+  /* Переходы */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  
+  /* Шрифты */
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 22px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 32px;
+  --font-size-5xl: 48px;
+  
+  /* Z-индексы */
+  --z-navbar: 100;
+  --z-modal: 1000;
+}

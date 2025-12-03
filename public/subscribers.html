@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Абоненты - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Список абонентов</span></h2>
+      <div class="navbar-actions">
+        <a href="dashboard.html" class="btn-secondary" style="text-decoration: none;">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>Все абоненты</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ФИО</th>
+            <th>Телефон</th>
+            <th>Тариф</th>
+            <th>Дата регистрации</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="subscribers-list">
+          <tr><td colspan="5" style="text-align: center; color: #999;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Редактировать абонента</h3>
+        <button onclick="closeEditModal()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-sub-id">
+        <div class="form-group" style="grid-template-columns: 1fr;">
+          <input type="text" id="modal-full-name" placeholder="ФИО" class="input">
+          <input type="tel" id="modal-phone" placeholder="Телефон" class="input">
+          <input type="password" id="modal-password" placeholder="Пароль (оставьте пустым если не менять)" class="input">
+          <select id="modal-tariff" class="input">
+            <option value="">Выберите тариф</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeEditModal()" class="btn-secondary" style="width: auto;">Отмена</button>
+        <button onclick="updateSubscriber()" class="btn-primary" style="width: auto;">Сохранить</button>
+        <button onclick="deleteSubscriber()" class="btn-table-delete" style="width: auto;">Удалить абонента</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    if (!JSON.parse(localStorage.getItem('user') || '{}').id) window.location.href = 'login_operator.html';
+
+    let currentEditingId = null;
+
+    async function loadSubscribers() {
+      try {
+        const res = await fetch(`${API_URL}/subscribers`);
+        const abonenty = await res.json();
+        
+        document.getElementById('subscribers-list').innerHTML = abonenty.map(abonent => `
+          <tr>
+            <td>${abonent.full_name || 'Неизвестно'}</td>
+            <td>${abonent.phone}</td>
+            <td>${abonent.tariff_name || '-'}</td>
+            <td>${abonent.reg_date}</td>
+            <td>
+              <a href="subscriber_card.html?id=${abonent.id}" class="btn-table-edit" style="text-decoration: none;">Открыть</a>
+              <button onclick="openEditModal(${abonent.id}, '${abonent.full_name}', '${abonent.phone}', ${abonent.tariff_id}, '${abonent.password}')" class="btn-table-edit">✏️ Изменить</button>
+              <button onclick="confirmDelete(${abonent.id})" class="btn-table-delete">🗑️ Удалить</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadTariffs() {
+      try {
+        const res = await fetch(`${API_URL}/tariffs`);
+        const tariffs = await res.json();
+        const select = document.getElementById('modal-tariff');
+        select.innerHTML = '<option value="">Выберите тариф</option>';
+        tariffs.forEach(tarif => {
+          const opt = document.createElement('option');
+          opt.value = tarif.id;
+          opt.textContent = `${tarif.name} (${tarif.price}₽)`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function openEditModal(id, polnoeImya, nomerTelefona, tariffId, parol) {
+      currentEditingId = id;
+      document.getElementById('modal-sub-id').value = id;
+      document.getElementById('modal-full-name').value = polnoeImya;
+      document.getElementById('modal-phone').value = nomerTelefona;
+      document.getElementById('modal-tariff').value = tariffId || '';
+      document.getElementById('modal-password').value = '';
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+      currentEditingId = null;
+    }
+
+    async function updateSubscriber() {
+      const id = document.getElementById('modal-sub-id').value;
+      const polnoeImya = document.getElementById('modal-full-name').value.trim();
+      const nomerTelefona = document.getElementById('modal-phone').value.trim();
+      const parol = document.getElementById('modal-password').value;
+      const tariff_id = document.getElementById('modal-tariff').value;
+
+      if (!polnoeImya || !nomerTelefona || !tariff_id) {
+        alert('❌ Заполните обязательные поля');
+        return;
+      }
+
+      try {
+        const body = { full_name: polnoeImya, phone: nomerTelefona, tariff_id: parseInt(tariff_id) };
+        if (parol) body.password = parol;
+
+        const res = await fetch(`${API_URL}/subscribers/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) throw new Error('Ошибка обновления');
+        
+        closeEditModal();
+        loadSubscribers();
+        alert('✅ Абонент обновлен успешно');
+      } catch (e) {
+        alert('❌ ' + e.message);
+      }
+    }
+
+    async function deleteSubscriber() {
+      if (!confirm('Вы уверены, что хотите удалить этого абонента?')) return;
+
+      const id = document.getElementById('modal-sub-id').value;
+
+      try {
+        const res = await fetch(`${API_URL}/subscribers/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (!res.ok) throw new Error('Ошибка удаления');
+
+        closeEditModal();
+        loadSubscribers();
+        alert('✅ Абонент удален успешно');
+      } catch (e) {
+        alert('❌ ' + e.message);
+      }
+    }
+
+    function confirmDelete(id) {
+      openEditModal(id, '', '', '', '');
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('edit-modal');
+      if (event.target === modal) {
+        closeEditModal();
+      }
+    };
+
+    loadSubscribers();
+    loadTariffs();
+  </script>
+</body>
+</html>

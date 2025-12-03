@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой кабинет - NetFlow</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>NetFlow <span style="font-size: 14px; color: #999;">- Личный кабинет абонента</span></h2>
+      <div class="navbar-actions">
+        <span id="subscriber-name" style="margin-right: 20px; color: #666;"></span>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="subscriber-grid">
+      <div class="card">
+        <h2>👤 Мой профиль</h2>
+        <div id="subscriber-profile" class="profile-info"></div>
+      </div>
+
+      <div class="card">
+        <h2>💳 Доступные тарифы</h2>
+        <div id="subscriber-tariffs" class="tariffs-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="subscriber.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История трафика - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- История трафика</span></h2>
+      <div class="navbar-actions">
+        <a href="dashboard.html" class="btn-secondary" style="text-decoration: none;">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card">
+      <h2>📊 Все записи трафика</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Абонент</th>
+            <th>Дата</th>
+            <th>Тип</th>
+            <th>Минуты</th>
+            <th>Трафик (MB)</th>
+            <th>SMS</th>
+          </tr>
+        </thead>
+        <tbody id="traffic-list">
+          <tr><td colspan="6" style="text-align: center; color: #999;">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    if (!JSON.parse(localStorage.getItem('user') || '{}').id) window.location.href = 'login_operator.html';
+
+    async function loadTraffic() {
+      try {
+        const res = await fetch(`${API_URL}/traffic`);
+        const traffic = await res.json();
+        
+        document.getElementById('traffic-list').innerHTML = traffic.map(t => `
+          <tr>
+            <td>${t.full_name || 'Неизвестно'}</td>
+            <td>${t.date || '-'}</td>
+            <td>${t.traffic_type === 'day' ? '🌞 День' : '🌙 Ночь'}</td>
+            <td>${t.minutes_used || 0}</td>
+            <td>${(t.data_used || 0).toFixed(1)}</td>
+            <td>${t.sms_used || 0}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="6" style="text-align: center; color: #999;">Нет данных</td></tr>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadTraffic();
+  </script>
+</body>
+</html>

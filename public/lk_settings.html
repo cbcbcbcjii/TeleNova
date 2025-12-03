@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Настройки - TeleNova</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Настройки</span></h2>
+      <div class="navbar-actions">
+        <a href="lk_profile.html" class="btn-secondary">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card" style="max-width: 600px; margin: 0 auto;">
+      <h2>Безопасность</h2>
+      <div class="form-group" style="grid-template-columns: 1fr;">
+        <label style="color: #666; font-weight: 600;">Изменить пароль</label>
+        <input type="password" id="old-password" placeholder="Старый пароль" class="input" disabled>
+        <input type="password" id="new-password" placeholder="Новый пароль" class="input" disabled>
+        <input type="password" id="confirm-password" placeholder="Повторить пароль" class="input" disabled>
+        <button class="btn-primary" disabled>⚠️ Недоступно в демо-версии</button>
+      </div>
+
+      <h2 style="margin-top: 40px;">Уведомления</h2>
+      <div style="padding: 20px; background: #f8f9fa; border-radius: 8px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" checked>
+          <span style="color: #666;">Уведомления о превышении лимита</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 10px;">
+          <input type="checkbox" checked>
+          <span style="color: #666;">Email рассылка новостей</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 10px;">
+          <input type="checkbox">
+          <span style="color: #666;">SMS оповещения</span>
+        </label>
+      </div>
+
+      <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 8px;">
+        <p style="color: #666; font-size: 13px;">
+          <strong>Версия:</strong> 1.0.0<br>
+          <strong>Последнее обновление:</strong> 2024
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

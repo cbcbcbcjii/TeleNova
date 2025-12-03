@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой профиль - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Личный кабинет</span></h2>
+      <div class="navbar-actions">
+        <span id="subscriber-name" style="margin-right: 20px; color: #666;"></span>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="subscriber-grid">
+      <div class="card">
+        <h2>👤 Мой профиль</h2>
+        <div id="profile" class="profile-info"></div>
+        <a href="lk_traffic.html" class="btn-primary" style="margin-top: 15px; display: inline-block; text-decoration: none;">История трафика</a>
+      </div>
+
+      <div class="card">
+        <h2>⭐ Рекомендуемый тариф</h2>
+        <div id="recommendation" style="padding: 20px; text-align: center; color: #999;">Загрузка...</div>
+      </div>
+
+      <div class="card">
+        <h2>💳 Все тарифы</h2>
+        <div id="tariffs" class="tariffs-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!user.id || user.type !== 'subscriber') window.location.href = 'login_subscriber.html';
+
+    document.getElementById('subscriber-name').textContent = `👤 ${user.full_name}`;
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(`${API_URL}/subscribers/${user.id}`);
+        const sub = await res.json();
+        
+        document.getElementById('profile').innerHTML = `
+          <div class="profile-item">
+            <label>ФИО</label>
+            <span>${sub.full_name}</span>
+          </div>
+          <div class="profile-item">
+            <label>Телефон</label>
+            <span>${sub.phone}</span>
+          </div>
+          <div class="profile-item">
+            <label>Текущий тариф</label>
+            <span>${sub.name}</span>
+          </div>
+          <div class="profile-item">
+            <label>Минуты/месяц</label>
+            <span>${sub.minutes}</span>
+          </div>
+          <div class="profile-item">
+            <label>ГБ/месяц</label>
+            <span>${sub.data_gb}</span>
+          </div>
+          <div class="profile-item">
+            <label>SMS/месяц</label>
+            <span>${sub.sms}</span>
+          </div>
+          <div class="profile-item">
+            <label>Цена/месяц</label>
+            <span>${sub.price}₽</span>
+          </div>
+          <div class="profile-item">
+            <label>Дата регистрации</label>
+            <span>${new Date(sub.reg_date).toLocaleDateString('ru-RU')}</span>
+          </div>
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadRecommendation() {
+      try {
+        const res = await fetch(`${API_URL}/recommend/${user.id}`);
+        const rec = await res.json();
+        
+        document.getElementById('recommendation').innerHTML = `
+          <h3>${rec.recommendedTariff}</h3>
+          <p style="margin-top: 10px; font-size: 14px;">${rec.reason}</p>
+          <button onclick="selectTariff(${rec.recommendedTariffId}, '${rec.recommendedTariff}')" class="btn-primary" style="margin-top: 15px; width: 100%;">
+            Выбрать этот тариф
+          </button>
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function selectTariff(tariffId, tarifName) {
+      try {
+        const res = await fetch(`${API_URL}/subscribe/${user.id}/${tariffId}`, {
+          method: 'POST'
+        });
+        alert(`✅ Вы успешно выбрали тариф "${tarifName}"`);
+        loadProfile();
+      } catch (e) {
+        alert('Ошибка при выборе тарифа');
+      }
+    }
+
+    async function loadTariffs() {
+      try {
+        const res = await fetch(`${API_URL}/tariffs`);
+        const tariffs = await res.json();
+        document.getElementById('tariffs').innerHTML = tariffs.map(t => `
+          <div class="tariff-card">
+            <h3>${t.name}</h3>
+            <div class="tariff-price">${t.price}<span>₽/месяц</span></div>
+            <div style="font-size: 12px; color: #666; margin-top: 10px;">
+              ☎️ ${t.minutes} мин<br>
+              📊 ${t.data_gb} ГБ<br>
+              💬 ${t.sms} SMS
+            </div>
+            <button onclick="selectTariff(${t.id}, '${t.name}')" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 8px;">
+              Выбрать
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadProfile();
+    loadRecommendation();
+    loadTariffs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+@import url('./variables.css');
+
+.card {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: var(--shadow-md);
+}
+
+.card h2 {
+  color: var(--text-dark);
+  margin-bottom: 20px;
+  font-size: var(--font-size-2xl);
+}
+
+/* Профиль */
+.profile-info {
+  display: grid;
+  gap: 15px;
+}
+
+.profile-item {
+  padding: 15px;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--primary);
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.profile-item label {
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.profile-item span {
+  color: var(--text-dark);
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+}
+
+/* Таблицы */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-white);
+}
+
+.admin-table thead {
+  background: var(--bg-light);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.admin-table th {
+  padding: 15px;
+  text-align: left;
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-light);
+  color: #666;
+  font-size: var(--font-size-base);
+}
+
+.admin-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+/* Кнопки в таблице */
+.btn-table-edit,
+.btn-table-delete {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-right: 8px;
+  transition: all var(--transition-fast);
+}
+
+.btn-table-edit {
+  background: var(--info);
+  color: white;
+}
+
+.btn-table-edit:hover {
+  background: var(--info-dark);
+  transform: translateY(-2px);
+}
+
+.btn-table-delete {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-table-delete:hover {
+  background: var(--danger-dark);
+  transform: translateY(-2px);
+}
+
+/* Статистика */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.stat-item {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* Тарифы */
+.tariffs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+}
+
+.tariff-card {
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 25px;
+  text-align: center;
+  transition: all var(--transition-normal);
+  background: var(--bg-white);
+}
+
+.tariff-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+  border-color: var(--primary);
+}
+
+.tariff-card h3 {
+  color: var(--primary);
+  margin-bottom: 15px;
+  font-size: var(--font-size-xl);
+}
+
+.tariff-price {
+  font-size: 36px;
+  color: var(--text-dark);
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.tariff-price span {
+  font-size: var(--font-size-base);
+  color: var(--text-light);
+}
+
+.tariff-item {
+  padding: 15px;
+  border-left: 4px solid var(--primary);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tariff-item-info h4 {
+  margin-bottom: 5px;
+  color: var(--text-dark);
+}
+
+.tariff-item-info p {
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+}

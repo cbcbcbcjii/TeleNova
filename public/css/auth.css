@@ -1,0 +1,92 @@
+@import url('./variables.css');
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.auth-box {
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  animation: slideIn var(--transition-normal);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-box h1 {
+  color: var(--primary);
+  margin-bottom: 5px;
+  font-size: var(--font-size-4xl);
+}
+
+.subtitle {
+  color: var(--text-light);
+  margin-bottom: 30px;
+  font-size: var(--font-size-base);
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.tab-btn {
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-normal);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.error-message {
+  color: var(--danger);
+  font-size: var(--font-size-base);
+  text-align: center;
+  margin-top: 15px;
+  display: none;
+}
+
+.error-message.show {
+  display: block;
+}

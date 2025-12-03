@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход абонента - TeleNova</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <h1>TeleNova</h1>
+      <p class="subtitle">Личный кабинет абонента</p>
+      
+      <div class="auth-form">
+        <input type="tel" id="phone" placeholder="Номер телефона" class="input">
+        <input type="password" id="password" placeholder="Пароль" class="input">
+        <button onclick="login()" class="btn-primary">Войти</button>
+      </div>
+
+      <div id="error-message" class="error-message"></div>
+      
+      <p style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+        Оператор? <a href="login_operator.html" style="color: #667eea;">Вход для оператора</a> | 
+        <a href="index.html" style="color: #667eea;">На главную</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    async function login() {
+      const phone = document.getElementById('phone').value;
+      const password = document.getElementById('password').value;
+
+      if (!phone || !password) {
+        showError('Заполните все поля');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/auth/subscriber`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+
+        if (!response.ok) throw new Error('Неверные учетные данные');
+        const data = await response.json();
+        
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = 'lk_profile.html';
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      document.getElementById('error-message').classList.add('show');
+    }
+  </script>
+</body>
+</html>

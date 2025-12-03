@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактировать абонента - TeleNova</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-content">
+      <h2>📱 TeleNova <span style="font-size: 14px; color: #999;">- Редактировать абонента</span></h2>
+      <div class="navbar-actions">
+        <a href="subscribers.html" class="btn-secondary">← Назад</a>
+        <button onclick="logout()" class="btn-logout">Выход</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="card" style="max-width: 600px; margin: 0 auto;">
+      <h2>Редактирование данных</h2>
+      <div class="form-group" style="grid-template-columns: 1fr;">
+        <input type="text" id="fio" placeholder="ФИО" class="input">
+        <input type="tel" id="phone" placeholder="Номер телефона" class="input">
+        <input type="password" id="password" placeholder="Пароль" class="input">
+        <select id="tariff" class="input">
+          <option value="">Выберите тариф</option>
+        </select>
+        <button onclick="updateSubscriber()" class="btn-primary">Сохранить</button>
+      </div>
+      <div id="error-message" class="error-message"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const params = new URLSearchParams(window.location.search);
+    const subscriberId = params.get('id');
+
+    if (!JSON.parse(localStorage.getItem('user') || '{}').id) window.location.href = 'login_operator.html';
+
+    async function loadSubscriber() {
+      try {
+        const res = await fetch(`${API_URL}/subscribers/${subscriberId}`);
+        const sub = await res.json();
+        document.getElementById('fio').value = sub.fio;
+        document.getElementById('phone').value = sub.phone;
+        document.getElementById('tariff').value = sub.tariff_id || '';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadTariffs() {
+      try {
+        const res = await fetch(`${API_URL}/tariffs`);
+        const tariffs = await res.json();
+        const select = document.getElementById('tariff');
+        tariffs.forEach(t => {
+          if (!select.querySelector(`option[value="${t.id}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `${t.name} - ${t.price}₽`;
+            select.appendChild(opt);
+          }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function updateSubscriber() {
+      const fio = document.getElementById('fio').value;
+      const phone = document.getElementById('phone').value;
+      const password = document.getElementById('password').value;
+      const tariff_id = document.getElementById('tariff').value;
+
+      if (!fio || !phone || !tariff_id) {
+        showError('Заполните все обязательные поля');
+        return;
+      }
+
+      try {
+        await fetch(`${API_URL}/subscribers/${subscriberId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ fio, phone, tariff_id: parseInt(tariff_id), password: password || '' })
+        });
+
+        alert('Данные обновлены');
+        window.location.href = 'subscribers.html';
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      document.getElementById('error-message').classList.add('show');
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadTariffs();
+    loadSubscriber();
+  </script>
+</body>
+</html>
