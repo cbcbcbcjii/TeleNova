@@ -1,8 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const Database = require('better-sqlite3');
-const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 
@@ -12,26 +11,32 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 
 // БД
-const db = new Database('./database.db');
-db.pragma('journal_mode = WAL');
+const db = new sqlite3.Database('./database.db', (err) => {
+  if (err) console.error(err.message);
+  else console.log('✅ БД подключена');
+});
+
+db.configure('busyTimeout', 5000);
 
 // Инициализация БД
-function initializeDatabase() {
+db.serialize(() => {
+  db.run('PRAGMA foreign_keys = ON');
+
   // Удаляем старые таблицы
-  db.exec('DROP TABLE IF EXISTS traffic');
-  db.exec('DROP TABLE IF EXISTS subscribers');
-  db.exec('DROP TABLE IF EXISTS tariffs');
-  db.exec('DROP TABLE IF EXISTS operators');
+  db.run(`DROP TABLE IF EXISTS traffic`);
+  db.run(`DROP TABLE IF EXISTS subscribers`);
+  db.run(`DROP TABLE IF EXISTS tariffs`);
+  db.run(`DROP TABLE IF EXISTS operators`);
 
   // Таблица операторов
-  db.exec(`CREATE TABLE operators (
+  db.run(`CREATE TABLE operators (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL
   )`);
 
   // Таблица тарифов
-  db.exec(`CREATE TABLE tariffs (
+  db.run(`CREATE TABLE tariffs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     minutes INTEGER,
@@ -41,7 +46,7 @@ function initializeDatabase() {
   )`);
 
   // Таблица абонентов
-  db.exec(`CREATE TABLE subscribers (
+  db.run(`CREATE TABLE subscribers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT,
     phone TEXT UNIQUE NOT NULL,
@@ -52,7 +57,7 @@ function initializeDatabase() {
   )`);
 
   // Таблица трафика
-  db.exec(`CREATE TABLE traffic (
+  db.run(`CREATE TABLE traffic (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     subscriber_id INTEGER,
     traffic_type TEXT,
@@ -61,21 +66,21 @@ function initializeDatabase() {
     data_used REAL,
     date TEXT,
     FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
-  )`);
-
-  console.log('✅ Таблицы созданы');
-  initializeData();
-}
+  )`, () => {
+    // Таблицы созданы, можем инициализировать данные
+    initializeData();
+  });
+});
 
 // Инициализация данных
 function initializeData() {
   // Операторы
-  const insertOp = db.prepare('INSERT INTO operators (login, password) VALUES (?, ?)');
-  insertOp.run('admin', 'admin123');
-  console.log('✅ Операторы загружены');
+  db.run(`INSERT INTO operators (login, password) VALUES (?, ?)`,
+    ['admin', 'admin123'], (err) => {
+      if (!err) console.log('✅ Оператор добавлен');
+    });
 
   // Тарифы
-  const insertTariff = db.prepare('INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)');
   const tariffs = [
     ['Light', 200, 100, 10, 350],
     ['Standard', 500, 300, 30, 590],
@@ -83,16 +88,17 @@ function initializeData() {
     ['Ultra', 2000, 1000, 120, 1490],
     ['Night', 100, 50, 50, 250]
   ];
-  tariffs.forEach(t => insertTariff.run(...t));
+  tariffs.forEach(t => {
+    db.run(`INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)`,
+      t, (err) => {});
+  });
   console.log('✅ Тарифы загружены');
 
   // Абоненты и трафик
   const imena = ['Иван', 'Петр', 'Александр', 'Сергей', 'Дмитрий', 'Николай', 'Андрей', 'Виктор', 'Мария', 'Анна', 'Елена', 'Ольга', 'Павел', 'Михаил', 'Владимир'];
   const familii = ['Иванов', 'Петров', 'Сидоров', 'Смирнов', 'Кузнецов', 'Волков', 'Соколов', 'Лебедев', 'Морозов', 'Новиков', 'Орлов', 'Крылов', 'Киселев', 'Воробьев', 'Степанов'];
 
-  const insertSub = db.prepare('INSERT INTO subscribers (full_name, phone, password, tariff_id, reg_date) VALUES (?, ?, ?, ?, ?)');
-  const insertTraffic = db.prepare('INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)');
-
+  let count = 0;
   for (let i = 1; i <= 100; i++) {
     const firstName = imena[Math.floor(Math.random() * imena.length)];
     const lastName = familii[Math.floor(Math.random() * familii.length)];
@@ -102,161 +108,182 @@ function initializeData() {
     const tariffId = ((i - 1) % 5) + 1;
     const regDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const result = insertSub.run(fullName, phone, password, tariffId, regDate);
-    const subscriberId = result.lastInsertRowid;
+    db.run(`INSERT INTO subscribers (full_name, phone, password, tariff_id, reg_date) VALUES (?, ?, ?, ?, ?)`,
+      [fullName, phone, password, tariffId, regDate], function(err) {
+        if (err) return;
+        const subscriberId = this.lastID;
 
-    // Генерируем трафик (24 дневных + 12 ночных записей)
-    for (let j = 0; j < 24; j++) {
-      const randomDaysAgo = Math.floor(Math.random() * 60);
-      const minutes = Math.floor(Math.random() * 40) + 1;
-      const sms = Math.floor(Math.random() * 10) + 1;
-      const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
-      const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      insertTraffic.run(subscriberId, 'day', minutes, sms, data, date);
-    }
+        // Генерируем трафик (24 дневных записи)
+        for (let j = 0; j < 24; j++) {
+          const randomDaysAgo = Math.floor(Math.random() * 60);
+          const minutes = Math.floor(Math.random() * 40) + 1;
+          const sms = Math.floor(Math.random() * 10) + 1;
+          const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
+          const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          
+          db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
+            [subscriberId, 'day', minutes, sms, data, date], (err) => {});
+        }
 
-    for (let j = 0; j < 12; j++) {
-      const randomDaysAgo = Math.floor(Math.random() * 60);
-      const minutes = Math.floor(Math.random() * 40) + 1;
-      const sms = Math.floor(Math.random() * 10) + 1;
-      const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
-      const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      insertTraffic.run(subscriberId, 'night', minutes, sms, data, date);
-    }
+        // 12 ночных записей
+        for (let j = 0; j < 12; j++) {
+          const randomDaysAgo = Math.floor(Math.random() * 60);
+          const minutes = Math.floor(Math.random() * 40) + 1;
+          const sms = Math.floor(Math.random() * 10) + 1;
+          const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
+          const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          
+          db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
+            [subscriberId, 'night', minutes, sms, data, date], (err) => {});
+        }
+
+        count++;
+        if (count === 100) console.log('✅ 100 абонентов и трафик загружены');
+      });
   }
-
-  console.log('✅ 100 абонентов и трафик загружены');
 }
-
-// Инициализируем БД
-initializeDatabase();
 
 // API ROUTES
 
 // Вход оператора
 app.post('/api/auth/operator', (req, res) => {
   const { login, password } = req.body;
-  const stmt = db.prepare('SELECT * FROM operators WHERE login = ? AND password = ?');
-  const operator = stmt.get(login, password);
-  
-  if (!operator) {
-    return res.status(401).json({ error: 'Неверные учетные данные' });
-  }
-  
-  res.json({ user: { id: operator.id, login: operator.login, type: 'operator' } });
+  db.get(`SELECT * FROM operators WHERE login = ? AND password = ?`,
+    [login, password], (err, operator) => {
+      if (err) return res.json({ error: 'Ошибка БД' });
+      if (!operator) {
+        return res.status(401).json({ error: 'Неверные учетные данные' });
+      }
+      res.json({ user: { id: operator.id, login: operator.login, type: 'operator' } });
+    });
 });
 
 // Вход абонента
 app.post('/api/auth/subscriber', (req, res) => {
   const { phone, password } = req.body;
-  const stmt = db.prepare('SELECT * FROM subscribers WHERE phone = ? AND password = ?');
-  const subscriber = stmt.get(phone, password);
-  
-  if (!subscriber) {
-    return res.status(401).json({ error: 'Неверные учетные данные' });
-  }
-  
-  res.json({ user: { id: subscriber.id, full_name: subscriber.full_name, phone: subscriber.phone, type: 'subscriber' } });
+  db.get(`SELECT * FROM subscribers WHERE phone = ? AND password = ?`,
+    [phone, password], (err, subscriber) => {
+      if (err) return res.json({ error: 'Ошибка БД' });
+      if (!subscriber) {
+        return res.status(401).json({ error: 'Неверные учетные данные' });
+      }
+      res.json({ user: { id: subscriber.id, full_name: subscriber.full_name, phone: subscriber.phone, type: 'subscriber' } });
+    });
 });
 
 // Получить всех абонентов
 app.get('/api/subscribers', (req, res) => {
-  const stmt = db.prepare('SELECT s.*, t.name as tariff_name FROM subscribers s LEFT JOIN tariffs t ON s.tariff_id = t.id');
-  const subscribers = stmt.all();
-  res.json(subscribers || []);
+  db.all(`SELECT s.*, t.name as tariff_name FROM subscribers s LEFT JOIN tariffs t ON s.tariff_id = t.id`,
+    (err, subscribers) => {
+      if (err) return res.json([]);
+      res.json(subscribers || []);
+    });
 });
 
 // Получить одного абонента
 app.get('/api/subscribers/:id', (req, res) => {
-  const stmt = db.prepare('SELECT s.*, t.* FROM subscribers s LEFT JOIN tariffs t ON s.tariff_id = t.id WHERE s.id = ?');
-  const subscriber = stmt.get(req.params.id);
-  res.json(subscriber || {});
+  db.get(`SELECT s.*, t.* FROM subscribers s LEFT JOIN tariffs t ON s.tariff_id = t.id WHERE s.id = ?`,
+    [req.params.id], (err, subscriber) => {
+      if (err) return res.json({});
+      res.json(subscriber || {});
+    });
 });
 
 // Добавить абонента
 app.post('/api/subscribers', (req, res) => {
   const { full_name, phone, tariff_id, password } = req.body;
-  try {
-    const stmt = db.prepare('INSERT INTO subscribers (full_name, phone, tariff_id, password) VALUES (?, ?, ?, ?)');
-    const result = stmt.run(full_name, phone, tariff_id, password);
-    res.json({ id: result.lastInsertRowid, message: 'Абонент добавлен' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  db.run(`INSERT INTO subscribers (full_name, phone, tariff_id, password) VALUES (?, ?, ?, ?)`,
+    [full_name, phone, tariff_id, password], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ id: this.lastID, message: 'Абонент добавлен' });
+    });
 });
 
 // Изменить абонента
 app.put('/api/subscribers/:id', (req, res) => {
   const { full_name, phone, tariff_id, password } = req.body;
-  const stmt = db.prepare('UPDATE subscribers SET full_name = ?, phone = ?, tariff_id = ?, password = ? WHERE id = ?');
-  stmt.run(full_name, phone, tariff_id, password, req.params.id);
-  res.json({ message: 'Абонент обновлен' });
+  db.run(`UPDATE subscribers SET full_name = ?, phone = ?, tariff_id = ?, password = ? WHERE id = ?`,
+    [full_name, phone, tariff_id, password, req.params.id], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ message: 'Абонент обновлен' });
+    });
 });
 
 // Удалить абонента
 app.delete('/api/subscribers/:id', (req, res) => {
-  const stmt = db.prepare('DELETE FROM subscribers WHERE id = ?');
-  stmt.run(req.params.id);
-  res.json({ message: 'Абонент удален' });
+  db.run(`DELETE FROM subscribers WHERE id = ?`, [req.params.id], (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ message: 'Абонент удален' });
+  });
 });
 
 // Получить все тарифы
 app.get('/api/tariffs', (req, res) => {
-  const stmt = db.prepare('SELECT * FROM tariffs');
-  const tariffs = stmt.all();
-  res.json(tariffs || []);
+  db.all(`SELECT * FROM tariffs`, (err, tariffs) => {
+    if (err) return res.json([]);
+    res.json(tariffs || []);
+  });
 });
 
 // Добавить тариф
 app.post('/api/tariffs', (req, res) => {
   const { name, minutes, sms, data_gb, price } = req.body;
-  const stmt = db.prepare('INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)');
-  const result = stmt.run(name, minutes, sms, data_gb, price);
-  res.json({ id: result.lastInsertRowid });
+  db.run(`INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)`,
+    [name, minutes, sms, data_gb, price], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
 });
 
 // Изменить тариф
 app.put('/api/tariffs/:id', (req, res) => {
   const { name, minutes, sms, data_gb, price } = req.body;
-  const stmt = db.prepare('UPDATE tariffs SET name = ?, minutes = ?, sms = ?, data_gb = ?, price = ? WHERE id = ?');
-  stmt.run(name, minutes, sms, data_gb, price, req.params.id);
-  res.json({ message: 'Тариф обновлен' });
+  db.run(`UPDATE tariffs SET name = ?, minutes = ?, sms = ?, data_gb = ?, price = ? WHERE id = ?`,
+    [name, minutes, sms, data_gb, price, req.params.id], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ message: 'Тариф обновлен' });
+    });
 });
 
 // Удалить тариф
 app.delete('/api/tariffs/:id', (req, res) => {
-  const stmt = db.prepare('DELETE FROM tariffs WHERE id = ?');
-  stmt.run(req.params.id);
-  res.json({ message: 'Тариф удален' });
+  db.run(`DELETE FROM tariffs WHERE id = ?`, [req.params.id], (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ message: 'Тариф удален' });
+  });
 });
 
 // Получить весь трафик
 app.get('/api/traffic', (req, res) => {
-  const stmt = db.prepare('SELECT t.*, s.full_name FROM traffic t LEFT JOIN subscribers s ON t.subscriber_id = s.id ORDER BY t.date DESC LIMIT 1000');
-  const traffic = stmt.all();
-  res.json(traffic || []);
+  db.all(`SELECT t.*, s.full_name FROM traffic t LEFT JOIN subscribers s ON t.subscriber_id = s.id ORDER BY t.date DESC LIMIT 1000`,
+    (err, traffic) => {
+      if (err) return res.json([]);
+      res.json(traffic || []);
+    });
 });
 
 // Получить трафик абонента
 app.get('/api/traffic/:subscriberId', (req, res) => {
-  const stmt = db.prepare('SELECT * FROM traffic WHERE subscriber_id = ? ORDER BY date DESC');
-  const traffic = stmt.all(req.params.subscriberId);
-  res.json(traffic || []);
+  db.all(`SELECT * FROM traffic WHERE subscriber_id = ? ORDER BY date DESC`,
+    [req.params.subscriberId], (err, traffic) => {
+      if (err) return res.json([]);
+      res.json(traffic || []);
+    });
 });
 
 // Добавить запись трафика
 app.post('/api/traffic', (req, res) => {
   const { subscriber_id, traffic_type, minutes_used, sms_used, data_used, date } = req.body;
-  const stmt = db.prepare('INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)');
-  const result = stmt.run(subscriber_id, traffic_type, minutes_used, sms_used, data_used, date);
-  res.json({ id: result.lastInsertRowid });
+  db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
+    [subscriber_id, traffic_type, minutes_used, sms_used, data_used, date], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
 });
 
 // Получить статистику трафика
 app.get('/api/traffic-stats/:subscriberId', (req, res) => {
-  const stmt = db.prepare(`
+  db.get(`
     SELECT 
       SUM(data_used) as total_data_gb,
       SUM(CASE WHEN traffic_type = 'day' THEN data_used ELSE 0 END) as day_data_gb,
@@ -266,59 +293,59 @@ app.get('/api/traffic-stats/:subscriberId', (req, res) => {
       COUNT(DISTINCT date) as days_count
       FROM traffic 
       WHERE subscriber_id = ? AND date >= date('now', '-30 days')
-  `);
-  const stats = stmt.get(req.params.subscriberId);
-  res.json(stats || {});
+  `, [req.params.subscriberId], (err, stats) => {
+    if (err) return res.json({});
+    res.json(stats || {});
+  });
 });
 
 // Получить рекомендацию по тарифу
 app.get('/api/recommend/:subscriberId', (req, res) => {
-  const stmt = db.prepare(`
+  db.get(`
     SELECT 
       AVG(minutes_used) as avg_min, 
       AVG(data_used) as avg_data,
       AVG(sms_used) as avg_sms 
       FROM traffic 
       WHERE subscriber_id = ?
-  `);
-  const stats = stmt.get(req.params.subscriberId);
+  `, [req.params.subscriberId], (err, stats) => {
+    if (err || !stats || !stats.avg_min) {
+      return res.json({ recommendedTariff: 'Light', reason: 'Недостаточно данных' });
+    }
 
-  if (!stats || !stats.avg_min) {
-    return res.json({ recommendedTariff: 'Light', reason: 'Недостаточно данных' });
-  }
+    const avgMin = Math.ceil(stats.avg_min || 0);
+    const avgData = Math.ceil(stats.avg_data || 0);
+    const avgSms = Math.ceil(stats.avg_sms || 0);
 
-  const avgMin = Math.ceil(stats.avg_min || 0);
-  const avgData = Math.ceil(stats.avg_data || 0);
-  const avgSms = Math.ceil(stats.avg_sms || 0);
-
-  // Ищем подходящий тариф
-  const suitable = db.prepare('SELECT * FROM tariffs WHERE minutes >= ? AND data_gb >= ? AND sms >= ? ORDER BY price ASC LIMIT 1').get(avgMin, avgData, avgSms);
-
-  if (suitable) {
-    res.json({
-      recommendedTariff: suitable.name,
-      recommendedTariffId: suitable.id,
-      reason: `Оптимально для ${avgMin} мин, ${avgData}ГБ, ${avgSms} SMS`
-    });
-  } else {
-    const expensive = db.prepare('SELECT * FROM tariffs ORDER BY price DESC LIMIT 1').get();
-    res.json({
-      recommendedTariff: expensive?.name || 'Ultra',
-      recommendedTariffId: expensive?.id || 4,
-      reason: 'Рекомендуем максимальный тариф'
-    });
-  }
+    // Ищем подходящий тариф
+    db.get(`SELECT * FROM tariffs WHERE minutes >= ? AND data_gb >= ? AND sms >= ? ORDER BY price ASC LIMIT 1`,
+      [avgMin, avgData, avgSms], (err, suitable) => {
+        if (suitable) {
+          res.json({
+            recommendedTariff: suitable.name,
+            recommendedTariffId: suitable.id,
+            reason: `Оптимально для ${avgMin} мин, ${avgData}ГБ, ${avgSms} SMS`
+          });
+        } else {
+          db.get(`SELECT * FROM tariffs ORDER BY price DESC LIMIT 1`, (err, expensive) => {
+            res.json({
+              recommendedTariff: expensive?.name || 'Ultra',
+              recommendedTariffId: expensive?.id || 4,
+              reason: 'Рекомендуем максимальный тариф'
+            });
+          });
+        }
+      });
+  });
 });
 
 // Изменить тариф абонента
 app.post('/api/subscribe/:subscriberId/:tariffId', (req, res) => {
-  try {
-    const stmt = db.prepare('UPDATE subscribers SET tariff_id = ? WHERE id = ?');
-    stmt.run(req.params.tariffId, req.params.subscriberId);
-    res.json({ message: 'Тариф изменен' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  db.run(`UPDATE subscribers SET tariff_id = ? WHERE id = ?`,
+    [req.params.tariffId, req.params.subscriberId], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ message: 'Тариф изменен' });
+    });
 });
 
 // ЗАПУСК СЕРВЕРА
