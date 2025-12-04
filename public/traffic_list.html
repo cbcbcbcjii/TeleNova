@@ -52,16 +52,41 @@
         const res = await fetch(`${API_URL}/traffic`);
         const traffic = await res.json();
         
-        document.getElementById('traffic-list').innerHTML = traffic.map(t => `
+        // Группируем по абоненту + дате + типу
+        const grouped = {};
+        traffic.forEach(t => {
+          const key = `${t.subscriber_id}_${t.date}`;
+          if (!grouped[key]) {
+            grouped[key] = {
+              name: t.full_name || 'Неизвестно',
+              date: t.date,
+              day: 0,
+              night: 0,
+              minutes: 0,
+              sms: 0
+            };
+          }
+          if (t.traffic_type === 'day') {
+            grouped[key].day += t.data_used || 0;
+          } else {
+            grouped[key].night += t.data_used || 0;
+          }
+          grouped[key].minutes += t.minutes_used || 0;
+          grouped[key].sms += t.sms_used || 0;
+        });
+
+        const rows = Object.values(grouped).map(g => `
           <tr>
-            <td>${t.full_name || 'Неизвестно'}</td>
-            <td>${t.date || '-'}</td>
-            <td>${t.traffic_type === 'day' ? '🌞 День' : '🌙 Ночь'}</td>
-            <td>${t.minutes_used || 0}</td>
-            <td>${(t.data_used || 0).toFixed(1)}</td>
-            <td>${t.sms_used || 0}</td>
+            <td>${g.name}</td>
+            <td>${g.date || '-'}</td>
+            <td>🌞 День: ${g.day.toFixed(1)}, 🌙 Ночь: ${g.night.toFixed(1)}</td>
+            <td>${g.minutes}</td>
+            <td>${(g.day + g.night).toFixed(1)}</td>
+            <td>${g.sms}</td>
           </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align: center; color: #999;">Нет данных</td></tr>';
+        `).join('');
+
+        document.getElementById('traffic-list').innerHTML = rows || '<tr><td colspan="6" style="text-align: center; color: #999;">Нет данных</td></tr>';
       } catch (e) {
         console.error(e);
       }

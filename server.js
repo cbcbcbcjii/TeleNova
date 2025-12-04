@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 
 const app = express();
 
@@ -18,25 +19,33 @@ const db = new sqlite3.Database('./database.db', (err) => {
 
 db.configure('busyTimeout', 5000);
 
-// Инициализация БД
+// Проверяем, если БД пуста - инициализируем
 db.serialize(() => {
   db.run('PRAGMA foreign_keys = ON');
 
-  // Удаляем старые таблицы
-  db.run(`DROP TABLE IF EXISTS traffic`);
-  db.run(`DROP TABLE IF EXISTS subscribers`);
-  db.run(`DROP TABLE IF EXISTS tariffs`);
-  db.run(`DROP TABLE IF EXISTS operators`);
+  // Проверяем существование таблицы operators
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='operators'", (err, row) => {
+    if (!row) {
+      // Таблицы не созданы - создаем и инициализируем
+      initializeTables();
+    } else {
+      console.log('✅ БД уже инициализирована');
+    }
+  });
+});
+
+function initializeTables() {
+  db.run('PRAGMA foreign_keys = ON');
 
   // Таблица операторов
-  db.run(`CREATE TABLE operators (
+  db.run(`CREATE TABLE IF NOT EXISTS operators (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL
   )`);
 
   // Таблица тарифов
-  db.run(`CREATE TABLE tariffs (
+  db.run(`CREATE TABLE IF NOT EXISTS tariffs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     minutes INTEGER,
@@ -46,7 +55,7 @@ db.serialize(() => {
   )`);
 
   // Таблица абонентов
-  db.run(`CREATE TABLE subscribers (
+  db.run(`CREATE TABLE IF NOT EXISTS subscribers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT,
     phone TEXT UNIQUE NOT NULL,
@@ -57,7 +66,7 @@ db.serialize(() => {
   )`);
 
   // Таблица трафика
-  db.run(`CREATE TABLE traffic (
+  db.run(`CREATE TABLE IF NOT EXISTS traffic (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     subscriber_id INTEGER,
     traffic_type TEXT,
@@ -65,82 +74,90 @@ db.serialize(() => {
     sms_used INTEGER,
     data_used REAL,
     date TEXT,
-    FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
+    FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE
   )`, () => {
-    // Таблицы созданы, можем инициализировать данные
+    console.log('✅ Таблицы созданы');
     initializeData();
   });
-});
+}
 
 // Инициализация данных
 function initializeData() {
-  // Операторы
-  db.run(`INSERT INTO operators (login, password) VALUES (?, ?)`,
-    ['admin', 'admin123'], (err) => {
-      if (!err) console.log('✅ Оператор добавлен');
-    });
+  // Проверяем, есть ли данные
+  db.get('SELECT COUNT(*) as count FROM subscribers', (err, row) => {
+    if (err || (row && row.count > 0)) {
+      console.log('✅ Данные уже существуют');
+      return;
+    }
 
-  // Тарифы
-  const tariffs = [
-    ['Light', 200, 100, 10, 350],
-    ['Standard', 500, 300, 30, 590],
-    ['Pro', 1000, 600, 60, 990],
-    ['Ultra', 2000, 1000, 120, 1490],
-    ['Night', 100, 50, 50, 250]
-  ];
-  tariffs.forEach(t => {
-    db.run(`INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)`,
-      t, (err) => {});
-  });
-  console.log('✅ Тарифы загружены');
-
-  // Абоненты и трафик
-  const imena = ['Иван', 'Петр', 'Александр', 'Сергей', 'Дмитрий', 'Николай', 'Андрей', 'Виктор', 'Мария', 'Анна', 'Елена', 'Ольга', 'Павел', 'Михаил', 'Владимир'];
-  const familii = ['Иванов', 'Петров', 'Сидоров', 'Смирнов', 'Кузнецов', 'Волков', 'Соколов', 'Лебедев', 'Морозов', 'Новиков', 'Орлов', 'Крылов', 'Киселев', 'Воробьев', 'Степанов'];
-
-  let count = 0;
-  for (let i = 1; i <= 100; i++) {
-    const firstName = imena[Math.floor(Math.random() * imena.length)];
-    const lastName = familii[Math.floor(Math.random() * familii.length)];
-    const fullName = `${lastName} ${firstName}`;
-    const phone = `+7999000${String(i).padStart(3, '0')}`;
-    const password = `pass${i}`;
-    const tariffId = ((i - 1) % 5) + 1;
-    const regDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    db.run(`INSERT INTO subscribers (full_name, phone, password, tariff_id, reg_date) VALUES (?, ?, ?, ?, ?)`,
-      [fullName, phone, password, tariffId, regDate], function(err) {
-        if (err) return;
-        const subscriberId = this.lastID;
-
-        // Генерируем трафик (24 дневных записи)
-        for (let j = 0; j < 24; j++) {
-          const randomDaysAgo = Math.floor(Math.random() * 60);
-          const minutes = Math.floor(Math.random() * 40) + 1;
-          const sms = Math.floor(Math.random() * 10) + 1;
-          const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
-          const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          
-          db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
-            [subscriberId, 'day', minutes, sms, data, date], (err) => {});
-        }
-
-        // 12 ночных записей
-        for (let j = 0; j < 12; j++) {
-          const randomDaysAgo = Math.floor(Math.random() * 60);
-          const minutes = Math.floor(Math.random() * 40) + 1;
-          const sms = Math.floor(Math.random() * 10) + 1;
-          const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
-          const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          
-          db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
-            [subscriberId, 'night', minutes, sms, data, date], (err) => {});
-        }
-
-        count++;
-        if (count === 100) console.log('✅ 100 абонентов и трафик загружены');
+    // Операторы
+    db.run(`INSERT INTO operators (login, password) VALUES (?, ?)`,
+      ['admin', 'admin123'], (err) => {
+        if (!err) console.log('✅ Оператор добавлен');
       });
-  }
+
+    // Тарифы
+    const tariffs = [
+      ['Light', 200, 100, 10, 350],
+      ['Standard', 500, 300, 30, 590],
+      ['Pro', 1000, 600, 60, 990],
+      ['Ultra', 2000, 1000, 120, 1490],
+      ['Night', 100, 50, 50, 250]
+    ];
+    tariffs.forEach(t => {
+      db.run(`INSERT INTO tariffs (name, minutes, sms, data_gb, price) VALUES (?, ?, ?, ?, ?)`,
+        t, (err) => {});
+    });
+    console.log('✅ Тарифы загружены');
+
+    // Абоненты и трафик
+    const imena = ['Иван', 'Петр', 'Александр', 'Сергей', 'Дмитрий', 'Николай', 'Андрей', 'Виктор', 'Мария', 'Анна', 'Елена', 'Ольга', 'Павел', 'Михаил', 'Владимир'];
+    const familii = ['Иванов', 'Петров', 'Сидоров', 'Смирнов', 'Кузнецов', 'Волков', 'Соколов', 'Лебедев', 'Морозов', 'Новиков', 'Орлов', 'Крылов', 'Киселев', 'Воробьев', 'Степанов'];
+
+    let count = 0;
+    for (let i = 1; i <= 100; i++) {
+      const firstName = imena[Math.floor(Math.random() * imena.length)];
+      const lastName = familii[Math.floor(Math.random() * familii.length)];
+      const fullName = `${lastName} ${firstName}`;
+      const phone = `+7999000${String(i).padStart(3, '0')}`;
+      const password = `pass${i}`;
+      const tariffId = ((i - 1) % 5) + 1;
+      const regDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      db.run(`INSERT INTO subscribers (full_name, phone, password, tariff_id, reg_date) VALUES (?, ?, ?, ?, ?)`,
+        [fullName, phone, password, tariffId, regDate], function(err) {
+          if (err) return;
+          const subscriberId = this.lastID;
+
+          // Генерируем трафик (24 дневных записи)
+          for (let j = 0; j < 24; j++) {
+            const randomDaysAgo = Math.floor(Math.random() * 60);
+            const minutes = Math.floor(Math.random() * 40) + 1;
+            const sms = Math.floor(Math.random() * 10) + 1;
+            const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
+            const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
+              [subscriberId, 'day', minutes, sms, data, date], (err) => {});
+          }
+
+          // 12 ночных записей
+          for (let j = 0; j < 12; j++) {
+            const randomDaysAgo = Math.floor(Math.random() * 60);
+            const minutes = Math.floor(Math.random() * 40) + 1;
+            const sms = Math.floor(Math.random() * 10) + 1;
+            const data = Math.round((Math.random() * 300 + 100) * 10) / 10;
+            const date = new Date(Date.now() - randomDaysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            db.run(`INSERT INTO traffic (subscriber_id, traffic_type, minutes_used, sms_used, data_used, date) VALUES (?, ?, ?, ?, ?, ?)`,
+              [subscriberId, 'night', minutes, sms, data, date], (err) => {});
+          }
+
+          count++;
+          if (count === 100) console.log('✅ 100 абонентов и трафик загружены');
+        });
+    }
+  });
 }
 
 // API ROUTES
